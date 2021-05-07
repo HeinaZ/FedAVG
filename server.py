@@ -146,7 +146,6 @@ if __name__ == "__main__":
             aggregated_parameters = update_aggregated_parameters(aggregated_parameters, local_parameters)
 
         global_parameters = update_global_parameters(global_parameters, aggregated_parameters, participants_num)
-        get_round_result(model, global_parameters, testDataLoader)
         round_accuracy = get_round_result(model, global_parameters, testDataLoader)
 
         current_time = time.time()
