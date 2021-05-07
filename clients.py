@@ -3,6 +3,7 @@ import torch
 from torch.utils.data import TensorDataset
 from torch.utils.data import DataLoader
 from getDatabase import GetDataSet
+import math
 import matplotlib.pyplot as plt
 
 
@@ -33,23 +34,24 @@ class client(object):
 
 
 class clientsGroup(object):
-    def __init__(self, datasetName, alpha, numOfClients, dev):
+    def __init__(self, datasetName, alpha, numOfClients, dev, use_shared_batch):
         self.dataset_name = datasetName
         self.alpha = alpha
         self.num_of_clients = numOfClients
         self.dev = dev
         self.clients_set = {}
         self.test_data_loader = None
-        self.localDataset(alpha)
+        self.localDataset(alpha, use_shared_batch)
 
-    def localDataset(self, alpha):
+    def localDataset(self, alpha, use_shared_batch):
         mnistDataSet = GetDataSet(self.dataset_name, self.alpha)
         test_data = torch.tensor(mnistDataSet.test_data)
         test_label = torch.tensor(mnistDataSet.test_label)
         self.test_data_loader = DataLoader(TensorDataset(test_data, test_label), batch_size=100, shuffle=False)
         shard_size = mnistDataSet.train_data_size // self.num_of_clients
-        
+
         if alpha == 0:
+            print('IID setting')
             train_data = mnistDataSet.train_data
             train_label = mnistDataSet.train_label
             shards_ids = np.random.permutation(self.num_of_clients)
@@ -60,28 +62,24 @@ class clientsGroup(object):
                 someone = client(TensorDataset(torch.tensor(local_data), torch.tensor(local_label)), self.dev)
                 self.clients_set['client{}'.format(i)] = someone
         else:
-            if alpha == 0:
-                alpha = 0.001
-            print('Non-IID setting')
+            print('Non-IID setting with Dirichlet concentration parameter alpha={}'.format(alpha))
             dirichlet_pdf = np.random.dirichlet([alpha / 10] * 10, self.num_of_clients)
             train_data = mnistDataSet.train_data
 
+            if use_shared_batch:
+                shared_portion = math.exp(-alpha)
+                shared_size = shard_size * shared_portion / 4
+                shard_size = shard_size * (1 - shared_portion / 4)
+
             for i in range(self.num_of_clients):
-                local_pdf = np.floor(dirichlet_pdf[i]*shard_size).astype('int64')
+                if use_shared_batch:
+                    local_pdf = np.floor(dirichlet_pdf[i] * shard_size + np.multiply([0.1]*10, shared_size)).\
+                        astype('int64')
+                else:
+                    local_pdf = np.floor(dirichlet_pdf[i]*shard_size).astype('int64')
                 local_label = []
                 local_data = []
                 pdf_list = []
-
-                start_index = 0
-                for k in range(10):
-                    pdf_list.append((start_index, local_pdf[k]))
-                    start_index += local_pdf[k]
-                plt.broken_barh(pdf_list,
-                                (i * 4, 3),
-                                facecolors=(
-                                "b", "#FF7F50", "g", "r", "purple", "#8B4513", "#FFC0CB", "#808080", "#FFD700",
-                                "#00FFFF"),
-                                alpha=1)
 
                 for label_num, label_value in zip(local_pdf, range(10)):
                     rand_arr = np.arange(train_data[label_value].shape[0])
@@ -97,6 +95,20 @@ class clientsGroup(object):
                             local_data = np.vstack((local_data, random_data))
                 someone = client(TensorDataset(torch.tensor(local_data), torch.tensor(local_label)), self.dev)
                 self.clients_set['client{}'.format(i)] = someone
+
+                start_index = 0
+                for k in range(10):
+                    pdf_list.append((start_index, local_pdf[k]))
+                    start_index += local_pdf[k]
+                plt.broken_barh(pdf_list,
+                                (i * 4, 3),
+                                facecolors=(
+                                    "b", "#FF7F50", "g", "r", "purple", "#8B4513", "#FFC0CB", "#808080", "#FFD700",
+                                    "#00FFFF"),
+                                alpha=1)
             plt.xlim((0, 295))
             plt.axis('off')
             plt.savefig("./result/alpha_" + format(alpha) + ".png")
+
+
+
