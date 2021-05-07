@@ -9,7 +9,7 @@ from clients import clientsGroup
 import csv
 import time
 
-path = './result'
+path = './result' 
 database = 'mnist'
 parser = argparse.ArgumentParser(formatter_class=argparse.ArgumentDefaultsHelpFormatter, description="FedAvg")
 parser.add_argument('-g', '--gpu', type=str, default='0')
