@@ -11,9 +11,9 @@ actual_pdf = [0.1] * 10
 alpha_list = [j * 0.01 + 0.01 for j in range(500)]
 
 EMD_list = []
-for isIID in alpha_list:
+for alpha in alpha_list:
     EMD = 0
-    dirichlet_pdf = np.random.dirichlet([isIID/10] * 10, num_of_clients)
+    dirichlet_pdf = np.random.dirichlet([alpha / 10] * 10, num_of_clients)
     for i in range(num_of_clients):
         EMD += np.sum(np.square(np.subtract(dirichlet_pdf[i], actual_pdf))) ** 0.5
     EMD /= num_of_clients
