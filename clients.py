@@ -2,7 +2,7 @@ import numpy as np
 import torch
 from torch.utils.data import TensorDataset
 from torch.utils.data import DataLoader
-from getData import GetDataSet
+from getDatabase import GetDataSet
 import matplotlib.pyplot as plt
 
 
