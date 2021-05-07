@@ -9,7 +9,7 @@ from clients import clientsGroup
 import csv
 import time
 
-path = './result' 
+path = './result'
 database = 'mnist'
 parser = argparse.ArgumentParser(formatter_class=argparse.ArgumentDefaultsHelpFormatter, description="FedAvg")
 parser.add_argument('-g', '--gpu', type=str, default='0')
@@ -21,8 +21,9 @@ parser.add_argument('-b', '--batch_size', type=int, default=10, help='local trai
 parser.add_argument('-lr', "--learning_rate", type=float, default=0.01)
 parser.add_argument('-dc', "--learning_rate_decay", type=float, default=0.9934)
 parser.add_argument('-comm', '--num_of_communication_rounds', type=int, default=200)
-parser.add_argument('-alpha', '--alpha', type=float, default=1, help='Dirichlet distribution concentration parameter, '
+parser.add_argument('-alpha', '--alpha', type=float, default=10, help='Dirichlet distribution concentration parameter, '
                                                                      'if set to 0, use iid distribution')
+parser.add_argument('-sb', '--use_shared_batch', type=bool, default=False)
 
 
 def get_args(args):
@@ -35,8 +36,9 @@ def get_args(args):
     learning_rate_decay = args['learning_rate_decay']
     total_round = args['num_of_communication_rounds']
     alpha = args['alpha']
+    use_shared_batch = args['use_shared_batch']
     return gpu_num, total_clients, participants_fraction, local_epoch, batch_size, learning_rate, learning_rate_decay\
-        , total_round, alpha
+        , total_round, alpha, use_shared_batch
 
 
 def test_mkdir(path):
@@ -119,13 +121,13 @@ if __name__ == "__main__":
     args = args.__dict__
     test_mkdir(path)
     gpu_num, total_clients, participants_fraction, local_epoch, batch_size, learning_rate, learning_rate_decay \
-        , total_round, alpha = get_args(args)
+        , total_round, alpha, use_shared_batch = get_args(args)
     excel_file_name = create_excel_file(path, alpha)
     participants_num = int(max(total_clients * participants_fraction, 1))
     loss_function = F.cross_entropy
     model = CNN()
     model, dev = activate_gpu(model, gpu_num)
-    clients_group = clientsGroup(database, alpha, total_clients, dev)
+    clients_group = clientsGroup(database, alpha, total_clients, dev, use_shared_batch)
     testDataLoader = clients_group.test_data_loader
     global_parameters = initial_model(model)
     last_time = 0
