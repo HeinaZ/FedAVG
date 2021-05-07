@@ -1,4 +1,4 @@
-# FedAvg with non-IID dataset with Dirichlet distribution
+# FedAvg with non-IID dataset of Dirichlet distribution
 
 Some codes refers to https://github.com/WHDY/FedAvg
 
